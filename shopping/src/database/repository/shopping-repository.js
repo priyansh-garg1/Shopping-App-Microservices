@@ -1,4 +1,4 @@
-const { CustomerModel, ProductModel, OrderModel } = require('../models');
+const { CustomerModel, ProductModel, OrderModel, CartModel } = require('../models');
 const { v4: uuidv4 } = require('uuid');
 const { APIError, BadRequestError } = require('../../utils/app-errors')
 
@@ -10,12 +10,75 @@ class ShoppingRepository {
 
     async Orders(customerId){
         try{
-            const orders = await OrderModel.find({customerId }).populate('items.product');        
+            const orders = await OrderModel.find({customerId });        
             return orders;
         }catch(err){
             throw APIError('API Error', STATUS_CODES.INTERNAL_ERROR, 'Unable to Find Orders')
         }
     }
+
+    async Cart(customerId){
+        try {
+            const cartItems = await CartModel.find({
+                customerId: customerId
+            })
+            if(cartItems){
+                return cartItems;
+            }
+            throw new Error('Data not found')
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async AddCartItem(customerId, item, qty, isRemove) {
+        try {
+          const cart = await CartModel.findOne({customerId:customerId})
+    
+          if (profile) {
+            const cartItem = {
+              product:{_id,name,price,banner},
+              unit: qty,
+            };
+    
+            let cartItems = profile.cart;
+    
+            if (cartItems.length > 0) {
+              let isExist = false;
+              cartItems.map((item) => {
+                if (item.product._id.toString() === product._id.toString()) {
+                  if (isRemove) {
+                    cartItems.splice(cartItems.indexOf(item), 1);
+                  } else {
+                    item.unit = qty;
+                  }
+                  isExist = true;
+                }
+              });
+    
+              if (!isExist) {
+                cartItems.push(cartItem);
+              }
+            } else {
+              cartItems.push(cartItem);
+            }
+    
+            profile.cart = cartItems;
+    
+            const cartSaveResult = await profile.save();
+    
+            return cartSaveResult;
+          }
+    
+          throw new Error("Unable to add to cart!");
+        } catch (err) {
+          throw new APIError(
+            "API Error",
+            STATUS_CODES.INTERNAL_ERROR,
+            "Unable to Create Customer"
+          );
+        }
+      }
  
  
     async CreateNewOrder(customerId, txnId){
